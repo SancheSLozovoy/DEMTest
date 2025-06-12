@@ -1,17 +1,19 @@
 import tkinter as tk
 from ui.main import MainFrame
 from ui.material import EditFrame
+from ui.supply import SupplyFrame
+
 
 class MaterialApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Учет материалов - Мозаика")
-        self.geometry("900x600")
+        self.geometry("1200x960")
         self.configure(bg="#FFFFFF")
 
         # Иконка приложения
         try:
-            self.iconbitmap('resources/logo.ico')
+            self.iconbitmap('resources/icon.ico')
         except Exception:
             pass
 
@@ -38,4 +40,13 @@ class MaterialApp(tk.Tk):
         title = "Редактирование материала" if material_id else "Добавление материала"
         self.title(f"Учет материалов - Мозаика | {title}")
 
+
+    def show_supply_frame(self, material_id=None):
+        """Показать окно поставщиков"""
+        if self.current_frame:
+            self.current_frame.destroy()
+
+        self.current_frame = SupplyFrame(self, material_id)
+        self.current_frame.pack(fill=tk.BOTH, expand=True)
+        self.title(f"Учет материалов - Мозаика | Поставщики")
 

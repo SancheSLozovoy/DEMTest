@@ -1,4 +1,3 @@
-# db.py (обновленная версия)
 import mysql.connector
 from config import DB_CONFIG
 
@@ -15,16 +14,16 @@ def get_materials():
         cursor = conn.cursor(dictionary=True)
         query = """
                 SELECT m.id, \
-                       mt.name AS type_name, \
-                       m.name, \
+                       mt.material_type AS type_name, \
+                       m.material_name, \
                        m.min_quantity,
                        m.quantity_in_stock, \
-                       m.cost, \
+                       m.unit_price, \
                        m.unit, \
-                       m.packaging_quantity
+                       m.package_quantity
                 FROM materials m
-                         JOIN material_types mt ON m.type_id = mt.id
-                ORDER BY mt.name, m.name; \
+                         JOIN material_types mt ON m.material_type_id = mt.id
+                ORDER BY mt.material_type, m.material_name; \
                 """
         cursor.execute(query)
         return cursor.fetchall()
@@ -35,12 +34,39 @@ def get_materials():
         conn.close()
 
 
+def get_suppliers_by_material(material_id=None):
+    """Получить список поставщиков (для конкретного материала или всех)"""
+    conn = None
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        if material_id:
+            sql = """
+                  SELECT s.* \
+                  FROM suppliers s \
+                           JOIN materials_suppliers ms ON s.id = ms.supplier_id
+                  WHERE ms.material_id = %s \
+                  """
+            cursor.execute(sql, (material_id,))
+        else:
+            sql = "SELECT * FROM suppliers"
+            cursor.execute(sql)
+
+        return cursor.fetchall()
+    except Exception as e:
+        raise e
+    finally:
+        if conn:
+            conn.close()
+
+
 def get_material_types():
     """Получить список типов материалов"""
     try:
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT id, name FROM material_types ORDER BY name")
+        cursor.execute("SELECT id, material_type FROM material_types ORDER BY material_type")
         return cursor.fetchall()
     except mysql.connector.Error as err:
         raise Exception(f"Ошибка при загрузке типов материалов: {err}")
@@ -56,24 +82,24 @@ def add_material(material_data):
         cursor = conn.cursor()
 
         # Сначала получаем ID типа материала
-        cursor.execute("SELECT id FROM material_types WHERE name = %s",
+        cursor.execute("SELECT id FROM material_types WHERE material_type = %s",
                        (material_data['type_name'],))
         type_id = cursor.fetchone()[0]
 
         query = """
                 INSERT INTO materials
-                (name, type_id, quantity_in_stock, unit, packaging_quantity,
-                 min_quantity, cost)
+                (material_name, material_type_id, quantity_in_stock, unit, package_quantity,
+                 min_quantity, unit_price)
                 VALUES (%s, %s, %s, %s, %s, %s, %s) \
                 """
         values = (
-            material_data['name'],
+            material_data['material_name'],
             type_id,
             material_data['quantity_in_stock'],
             material_data['unit'],
-            material_data['packaging_quantity'],
+            material_data['package_quantity'],
             material_data['min_quantity'],
-            material_data['cost']
+            material_data['unit_price']
         )
 
         cursor.execute(query, values)
@@ -92,29 +118,29 @@ def update_material(material_data):
         cursor = conn.cursor()
 
         # Получаем ID типа материала
-        cursor.execute("SELECT id FROM material_types WHERE name = %s",
+        cursor.execute("SELECT id FROM material_types WHERE material_type = %s",
                        (material_data['type_name'],))
         type_id = cursor.fetchone()[0]
 
         query = """
                 UPDATE materials
-                SET name               = %s,
-                    type_id            = %s,
+                SET material_name               = %s,
+                    material_type_id            = %s,
                     quantity_in_stock  = %s,
                     unit               = %s,
-                    packaging_quantity = %s,
+                    package_quantity = %s,
                     min_quantity       = %s,
-                    cost               = %s
+                    unit_price               = %s
                 WHERE id = %s \
                 """
         values = (
-            material_data['name'],
+            material_data['material_name'],
             type_id,
             material_data['quantity_in_stock'],
             material_data['unit'],
-            material_data['packaging_quantity'],
+            material_data['package_quantity'],
             material_data['min_quantity'],
-            material_data['cost'],
+            material_data['unit_price'],
             material_data['id']
         )
 
@@ -125,3 +151,33 @@ def update_material(material_data):
     finally:
         cursor.close()
         conn.close()
+
+
+def get_product_type_by_id(product_type_id):
+    """Получить тип продукции по ID"""
+    conn = None
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM product_type WHERE id = %s", (product_type_id,))
+        return cursor.fetchone()
+    except Exception:
+        return None
+    finally:
+        if conn:
+            conn.close()
+
+
+def get_material_type_by_id(material_type_id):
+    """Получить тип материала по ID"""
+    conn = None
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM material_types WHERE id = %s", (material_type_id,))
+        return cursor.fetchone()
+    except Exception:
+        return None
+    finally:
+        if conn:
+            conn.close()

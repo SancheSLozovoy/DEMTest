@@ -1,8 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
-from math import ceil
-from PIL import Image, ImageTk
-from db import get_materials, get_material_types, update_material
+from db import get_materials, get_material_types, update_material, add_material
+
 
 class EditFrame(tk.Frame):
     def __init__(self, master, material_id=None):
@@ -82,17 +81,17 @@ class EditFrame(tk.Frame):
                                command=lambda: self.master.show_main_frame())
         btn_cancel.pack(side="left", padx=10)
 
+        self.load_material_types()
+
         # Загрузка данных для редактирования
         if self.is_edit:
             self.load_material_data()
 
-        # Загрузка типов материалов
-        self.load_material_types()
 
     def load_material_types(self):
         try:
             types = get_material_types()
-            self.type_combobox['values'] = [t['name'] for t in types]
+            self.type_combobox['values'] = [t['material_type'] for t in types]
             if types:
                 self.type_combobox.current(0)
         except Exception as e:
@@ -107,15 +106,17 @@ class EditFrame(tk.Frame):
             if not material:
                 raise Exception("Материал не найден")
 
-            self.name_entry.insert(0, material['name'])
+            self.name_entry.insert(0, material['material_name'])
             self.stock_entry.insert(0, str(material['quantity_in_stock']))
             self.unit_entry.insert(0, material['unit'])
-            self.package_entry.insert(0, str(material['packaging_quantity']))
+            self.package_entry.insert(0, str(material['package_quantity']))
             self.min_entry.insert(0, str(material['min_quantity']))
-            self.price_entry.insert(0, f"{material['cost']:.2f}")
+            self.price_entry.insert(0, f"{material['unit_price']:.2f}")
 
+            print(self.type_combobox['values'])
             # Установка типа материала
             if material['type_name'] in self.type_combobox['values']:
+
                 index = self.type_combobox['values'].index(material['type_name'])
                 self.type_combobox.current(index)
 
@@ -149,7 +150,7 @@ class EditFrame(tk.Frame):
             errors.append("Некорректное значение количества в упаковке")
 
         try:
-            min_qty = int(self.min_entry.get())
+            min_qty = float(self.min_entry.get())
             if min_qty < 0:
                 errors.append("Минимальное количество не может быть отрицательным")
         except ValueError:
@@ -177,13 +178,13 @@ class EditFrame(tk.Frame):
 
         try:
             material_data = {
-                'name': self.name_entry.get().strip(),
+                'material_name': self.name_entry.get().strip(),
                 'type_name': self.type_combobox.get(),
                 'quantity_in_stock': float(self.stock_entry.get()),
                 'unit': self.unit_entry.get().strip(),
-                'packaging_quantity': int(self.package_entry.get()),
-                'min_quantity': int(self.min_entry.get()),
-                'cost': float(self.price_entry.get())
+                'package_quantity': int(self.package_entry.get()),
+                'min_quantity': float(self.min_entry.get()),
+                'unit_price': float(self.price_entry.get())
             }
 
             if self.is_edit:
@@ -197,5 +198,4 @@ class EditFrame(tk.Frame):
             self.master.show_main_frame()
 
         except Exception as e:
-            messagebox.showerror("Ошибка",
-                                 f"Не удалось сохранить материал:\n{str(e)}")
+            messagebox.showerror("Ошибка",f"Не удалось сохранить материал:\n{str(e)}")
