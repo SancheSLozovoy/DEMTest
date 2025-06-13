@@ -3,5 +3,5 @@ DB_CONFIG = {
     'user': 'root',
     'password': '65843asdf',
     'database': 'dem',
-    'auth_plugin': '65843asdf'
+    'charset': 'utf8mb4'
 }
